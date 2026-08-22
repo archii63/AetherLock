@@ -1,0 +1,92 @@
+"""
+AetherLock
+A lightweight file encryption utility.
+
+Install:
+    pip install cryptography
+
+Usage:
+    python aetherlock.py encrypt secret.txt
+    python aetherlock.py decrypt secret.txt.lock
+"""
+
+import os
+import sys
+from cryptography.fernet import Fernet
+
+
+KEY_FILE = ".aetherlock.key"
+
+
+def load_or_create_key():
+    """Load an existing encryption key or create a new one."""
+    if os.path.exists(KEY_FILE):
+        with open(KEY_FILE, "rb") as file:
+            return file.read()
+
+    key = Fernet.generate_key()
+
+    with open(KEY_FILE, "wb") as file:
+        file.write(key)
+
+    return key
+
+
+def encrypt_file(filename, cipher):
+    with open(filename, "rb") as file:
+        data = file.read()
+
+    encrypted_data = cipher.encrypt(data)
+    output = f"{filename}.lock"
+
+    with open(output, "wb") as file:
+        file.write(encrypted_data)
+
+    print(f"[+] Encrypted successfully: {output}")
+
+
+def decrypt_file(filename, cipher):
+    with open(filename, "rb") as file:
+        encrypted_data = file.read()
+
+    decrypted_data = cipher.decrypt(encrypted_data)
+
+    output = filename.replace(".lock", ".decrypted")
+
+    with open(output, "wb") as file:
+        file.write(decrypted_data)
+
+    print(f"[+] Decrypted successfully: {output}")
+
+
+def main():
+    if len(sys.argv) != 3:
+        print("Usage:")
+        print("  python aetherlock.py encrypt <file>")
+        print("  python aetherlock.py decrypt <file.lock>")
+        return
+
+    action = sys.argv[1].lower()
+    filename = sys.argv[2]
+
+    if not os.path.exists(filename):
+        print("[-] File not found.")
+        return
+
+    key = load_or_create_key()
+    cipher = Fernet(key)
+
+    try:
+        if action == "encrypt":
+            encrypt_file(filename, cipher)
+        elif action == "decrypt":
+            decrypt_file(filename, cipher)
+        else:
+            print("[-] Invalid action. Use encrypt or decrypt.")
+
+    except Exception as error:
+        print(f"[-] Error: {error}")
+
+
+if __name__ == "__main__":
+    main()
